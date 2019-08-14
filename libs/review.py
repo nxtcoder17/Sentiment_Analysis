@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[1]:
+
+
 import spacy
 import re
 from spacy.matcher import Matcher
+
+
+# In[2]:
 
 
 nlp = spacy.load ('en_core_web_sm')
@@ -15,7 +21,6 @@ nlp = spacy.load ('en_core_web_sm')
 class Review:
     def __init__ (self):
         self.abbreviations = set ( "i.e. e.g. am mr mrs dr. prof. kg lbs cm in m mm ft".split() )
-        self.remove_urls_hyperlinks()
         
     def remove_urls_hyperlinks (self, review):
         pattern = r"\s*(http[s]?:[/]{2}www[.])?([a-z0-9]+)[.]([a-z]{3})([/][A-Za-z0-9?='.]*)*\s*"
@@ -77,3 +82,7 @@ class Review:
         if len (doc[start: ]) > 0:
             splits.append (doc[start: ])
         return splits
+    
+    def pre_process (self, msg):
+        msg = self.remove_urls_hyperlinks (msg)
+        return self.split_into_sentences (msg)
