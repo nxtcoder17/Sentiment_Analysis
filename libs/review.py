@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[53]:
+# In[2]:
 
 
 import spacy
@@ -9,20 +9,19 @@ import re
 from spacy.matcher import Matcher
 
 
-# In[74]:
+# In[3]:
 
 
 nlp = spacy.load ('en_core_web_sm')
 
 
-# In[77]:
+# In[ ]:
 
 
-stop_words = nlp.Defaults.stop_words
-stop_words.remove('not')
 
 
-# In[78]:
+
+# In[17]:
 
 
 #######################################################################
@@ -32,6 +31,13 @@ stop_words.remove('not')
 class Review:
     def __init__ (self):
         self.abbreviations = set ( "i.e. e.g. am mr mrs dr. prof. kg lbs cm in m mm ft".split() )
+        self.stop_words = nlp.Defaults.stop_words
+        if 'not' in self.stop_words:
+            self.stop_words.remove ('not')
+        # Removing adjectives fro
+        self.stop_words = set (filter (lambda x: nlp(x)[0].pos != 84, self.stop_words))
+        # This feature set would contain adjectives and verbs encountered throughout, the Reviews dataset
+        self.features = set()
         
     def remove_urls_hyperlinks (self, review):
         pattern = r"\s*(http[s]?:[/]{2}www[.])?([a-z0-9]+)[.]([a-z]{3})([/][A-Za-z0-9?='.]*)*\s*"
@@ -79,7 +85,7 @@ class Review:
                 ne_indices.add (token.i)
         msg = []
         for token in doc:
-            if token.text.lower() in stop_words:
+            if token.text.lower() in self.stop_words:
                 continue
             if token.i not in ne_indices:
                 msg.append (str(token.text).lower())
@@ -116,6 +122,11 @@ class Review:
                 splits.append (doc[start: token.i])
                 start = token.i + 1
                 
+            #### Also, we now need to build Feature List of Adjectives and Verbs and Adverbs, so
+            ## 84: Adjectives | 100: verbs
+            if (token.pos == 84 or token.pos == 100 or token.pos == 86) and token.text.lower() not in nlp.Defaults.stop_words:
+                self.features.add (token.text.lower())
+                
         if len (doc[start: ]) > 0:
             splits.append (doc[start: ])
         return splits
@@ -133,33 +144,24 @@ class Review:
         # return (token.pos, token.pos_, spacy.explain (token.tag_))
 
 
-# In[79]:
+# In[18]:
 
 
 if __name__ == '__main__':
     r = Review ()
     
-    msg = "I would like 2.4kg of weight but I didn't like the food and i wouldn't have liked the service pretty much."
-    r.split_into_sentences(msg)
-    
-    r2 = Review ()
-    msg = "I wouldn't like you if you did that"
-    r2.split_into_sentences (msg)
-    
+    print ("Checking handling of NER")
     print (r.to_string ("Mr. Narendra Modi is the Prime minister of India."))
-    doc = nlp("Mr. Narendra Modi is the Prime minister of India.")
     
-    print (' '.join(r.pre_process ("Not tasty and the texture was just nasty.")))
-    d = ' '.join (r.pre_process ("Food was good."))
-    print (d, r.pos (d))
-    
-    for t in nlp("Food was not tasty."):
+    msg = "Food was not tasty. It didn't taste good."
+    for t in nlp(" ".join(r.pre_process(msg))):
         print (t.text, t.pos, t.pos_)
-    
-
-
-# In[ ]:
-
-
-
+        
+    for span in r.split_into_sentences ("Crust was not good."):
+        for t in span:
+            print (t, t.pos, t.pos_, t.tag_, spacy.explain (t.tag_))
+            
+    print (r.features)
+    print ('not' in nlp.Defaults.stop_words)
+            
 
